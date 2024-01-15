@@ -98,6 +98,13 @@ class DashboardAudioNotificationHelper {
   };
 
   // eslint-disable-next-line class-methods-use-this
+  isConversationUnassigned = message => {
+    const conversationAssigneeId = message?.conversation?.assignee_id;
+    const hasAssigneeId = Boolean(conversationAssigneeId);
+    return !hasAssigneeId;
+  };
+
+  // eslint-disable-next-line class-methods-use-this
   isMessageFromCurrentConversation = message => {
     return (
       window.WOOT.$store.getters.getSelectedChat?.id === message.conversation_id
@@ -109,6 +116,12 @@ class DashboardAudioNotificationHelper {
   };
 
   shouldNotifyOnMessage = message => {
+    if (this.audioAlertType === 'mine_and_unassigned') {
+      return (
+        this.isConversationAssignedToCurrentUser(message) ||
+        this.isConversationUnassigned(message)
+      );
+    }
     if (this.audioAlertType === 'mine') {
       return this.isConversationAssignedToCurrentUser(message);
     }
