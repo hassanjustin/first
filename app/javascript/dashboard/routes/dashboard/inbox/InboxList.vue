@@ -47,6 +47,8 @@
 <script>
 import { mapGetters } from 'vuex';
 import wootConstants from 'dashboard/constants/globals';
+import ReconnectService from 'dashboard/helper/ReconnectService';
+
 import InboxCard from './components/InboxCard.vue';
 import InboxListHeader from './components/InboxListHeader.vue';
 import { INBOX_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
@@ -73,6 +75,7 @@ export default {
       sortOrder: wootConstants.INBOX_SORT_BY.NEWEST,
       isInboxContextMenuOpen: false,
       notificationIdToSnooze: null,
+      reconnectService: null,
     };
   },
   computed: {
@@ -103,11 +106,31 @@ export default {
       return !this.uiFlags.isFetching && !this.notifications.length;
     },
   },
+  watch: {
+    inboxFilters(newFilters, oldFilters) {
+      if (newFilters !== oldFilters && this.reconnectService) {
+        this.reconnectService.updateFilters(newFilters);
+      }
+    },
+  },
   mounted() {
     this.setSavedFilter();
     this.fetchNotifications();
+    this.setUpReconnectService();
+  },
+  beforeUnmount() {
+    this.reconnectService.removeEventListeners();
   },
   methods: {
+    setUpReconnectService() {
+      this.reconnectService = new ReconnectService(
+        this.$store,
+        window.bus,
+        this.$route,
+        this.inboxFilters
+      );
+      this.reconnectService.setupEventListeners();
+    },
     fetchNotifications() {
       this.page = 1;
       this.$store.dispatch('notifications/clear');

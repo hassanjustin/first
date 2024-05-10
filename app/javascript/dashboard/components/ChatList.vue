@@ -179,6 +179,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import VirtualList from 'vue-virtual-scroll-list';
+import ReconnectService from 'dashboard/helper/ReconnectService';
 
 import ConversationAdvancedFilter from './widgets/conversation/ConversationAdvancedFilter.vue';
 import ConversationBasicFilter from './widgets/conversation/ConversationBasicFilter.vue';
@@ -306,6 +307,7 @@ export default {
         showAssignee: false,
         isConversationSelected: this.isConversationSelected,
       },
+      reconnectService: null,
     };
   },
   computed: {
@@ -544,6 +546,11 @@ export default {
     showAssigneeInConversationCard(newVal) {
       this.updateVirtualListProps('showAssignee', newVal);
     },
+    conversationFilters(newFilters, oldFilters) {
+      if (newFilters !== oldFilters && this.reconnectService) {
+        this.reconnectService.updateFilters(newFilters);
+      }
+    },
   },
   mounted() {
     this.setFiltersFromUISettings();
@@ -558,8 +565,22 @@ export default {
     bus.$on('fetch_conversation_stats', () => {
       this.$store.dispatch('conversationStats/get', this.conversationFilters);
     });
+
+    this.setUpReconnectService();
+  },
+  beforeUnmount() {
+    this.reconnectService.removeEventListeners();
   },
   methods: {
+    setUpReconnectService() {
+      this.reconnectService = new ReconnectService(
+        this.$store,
+        window.bus,
+        this.$route,
+        this.conversationFilters
+      );
+      this.reconnectService.setupEventListeners();
+    },
     updateVirtualListProps(key, value) {
       this.virtualListExtraProps = {
         ...this.virtualListExtraProps,
